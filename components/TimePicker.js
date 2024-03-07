@@ -1,52 +1,124 @@
-import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
-import React, { useState } from 'react';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import React, { useState, useEffect } from 'react';
+import { View, Button, Text } from 'react-native';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import * as Notifications from 'expo-notifications';
+import { Audio } from 'expo-av';
 
+const TimePicker = () => {
+  const [isTimePickerVisible, setTimePickerVisibility] = useState(false);
+  const [selectedTime, setSelectedTime] = useState(null);
+  const [alarmSound, setAlarmSound] = useState(null);
 
-export default function ({hour, minutes, onChange = () => null}) {
-  const [showPicker, setShowPicker] = useState(false);
+  useEffect(() => {
+    const requestPermission = async () => {
+      const { status } = await Notifications.getPermissionsAsync();
+      if (status !== 'granted') {
+        await Notifications.requestPermissionsAsync();
+      }
+    };
+
+    requestPermission();
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      checkTime();
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [selectedTime]);
+
+  const checkTime = () => {
+    if(selectedTime)
+    {
+      console.log(selectedTime.getHours() + " : " + selectedTime.getMinutes() + " = " + new Date().getHours() + " : " + new Date().getMinutes());
+      if(selectedTime.getHours() == new Date().getHours() && selectedTime.getMinutes() == new Date().getMinutes())
+      {
+        playAlarmSound();
+        setSelectedTime(null);
+      }
+    }
+  }
+
+  const showTimePicker = () => {
+    setTimePickerVisibility(true);
+  };
+
+  const hideTimePicker = () => {
+    setTimePickerVisibility(false);
+  };
+
+  const handleTimeConfirm = (time) => {
+    setSelectedTime(time);
+    scheduleAlarm(time);
+    hideTimePicker();
+  };
+
+  const scheduleAlarm = async (time) => {
+    try {
+      const dateTime = new Date();
+      dateTime.setHours(time.getHours());
+      dateTime.setMinutes(time.getMinutes());
+
+      const schedulingOptions = {
+        content: {
+          title: 'Alarm!',
+          body: 'Time to wake up!',
+        },
+        trigger: {
+          date: dateTime.getTime(), 
+        },
+      };
+  
+      await Notifications.scheduleNotificationAsync(schedulingOptions);
+  
+      // playAlarmSound();
+    } catch (error) {
+      console.error('Error scheduling alarm:', error);
+    }
+  };
+  
+
+  const playAlarmSound = async () => {
+    try {
+      const { sound } = await Audio.Sound.createAsync(
+        require('../assets/audio/alarm.mp3')
+      );
+      await sound.playAsync();
+      setAlarmSound(sound);
+    } catch (error) {
+      console.error('Error playing alarm sound:', error);
+    }
+  };
+
+  const dismissAlarm = async () => {
+    try {
+      if (alarmSound) {
+        await alarmSound.stopAsync();
+        await alarmSound.unloadAsync();
+        setAlarmSound(null);
+      }
+    } catch (error) {
+      console.error('Error dismissing alarm sound:', error);
+    }
+  };
 
   return (
     <View>
-      <TouchableOpacity style={styles.container} onPress={() => setShowPicker(true)}>
-        <Text style={styles.clockText}>
-          {hour < 10 ? '0' + hour : hour}:{minutes < 10 ? '0' + minutes : minutes}
-        </Text>
-      </TouchableOpacity>
-      {showPicker && (
-        <DateTimePicker
-          testID="dateTimePicker"
-          timeZoneOffsetInMinutes={0}
-          value={getDate(hour, minutes)}
-          mode={'time'}
-          is24Hour={true}
-          display="default"
-          onChange={(e, date) => {
-            setShowPicker(false);
-            onChange(date.getHours(), date.getMinutes());
-          }}
-        />
-      )}
+      <Button title="Set Alarm" onPress={showTimePicker} />
+      <Text>Selected Time: {selectedTime ? selectedTime.toLocaleTimeString() : 'None'}</Text>
+
+      <DateTimePickerModal
+        isVisible={isTimePickerVisible}
+        mode="time"
+        onConfirm={handleTimeConfirm}
+        onCancel={hideTimePicker}
+      />
+
+      <Button title="Test Alarm" onPress={playAlarmSound} disabled={!selectedTime} />
+      <Button title="Dismiss Alarm" onPress={dismissAlarm} disabled={!alarmSound} />
     </View>
-  )
-}
+  );
+};
 
-function getDate (hour, minutes) {
-  const date = new Date();
-  date.setHours(hour);
-  date.setMinutes(minutes);
-  return date;
-}
-
-const styles = StyleSheet.create({
-  container: {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  clockText: {
-    color: 'black',
-    fontWeight: 'bold',
-    fontSize: 70
-  }
-});
+export default TimePicker;

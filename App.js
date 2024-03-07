@@ -1,78 +1,19 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity } from 'react-native';
-import 'react-native-gesture-handler';
-import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
+import { View, Text, StyleSheet } from 'react-native';
+import TimePicker from './components/TimePicker';
 
-import Home from './screens/Alarms';
-import Settings from './screens/Edit';
-import Ring from './screens/Ring';
-
-
-const Stack = createStackNavigator();
-
-export default function () {
+const App = () => {
   return (
-    <NavigationContainer>
-      <Stack.Navigator>
-        <Stack.Screen
-          name="Alarms"
-          component={Home}
-          options={params => ({
-            ...headerStyles,
-            title: 'Alarms',
-            headerRight: () => (
-              <AddButton
-                title={"+ "}
-                onPress={() => params.navigation.navigate('Edit')}
-              />
-            )
-          })}
-        />
-        <Stack.Screen
-          name="Edit"
-          component={Settings}
-          options={{...headerStyles, title: 'Alarm'}}
-        />
-        <Stack.Screen
-          name="Ring"
-          component={Ring}
-          options={{headerShown: false}}
-        />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <View style={styles.container}>
+      <TimePicker />
+    </View>
   );
 }
 
-function AddButton ({title, onPress}) {
-  return (
-    <TouchableOpacity
-      style={styles.button}
-      onPress={onPress}
-      underlayColor='#fff'>
-      <Text style={styles.buttonText}>{title}</Text>
-    </TouchableOpacity>
-  )
-}
-
-export const headerStyles = {
-  headerStyle: {
-    elevation: 0,
-  },
-  headerTintColor: '#000',
-  headerTitleStyle: {
-    fontWeight: 'bold',
-  },
-};
+export default App;
 
 const styles = StyleSheet.create({
-  button: {
-    backgroundColor: 'transparent',
-    padding: 10
-  },
-  buttonText: {
-    color: 'black',
-    fontWeight: 'bold',
-    fontSize: 25
-  },
-});
+  container: {
+    paddingTop: 40, // Use a numeric value for padding
+  }
+})
